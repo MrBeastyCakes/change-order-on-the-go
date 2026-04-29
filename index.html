@@ -395,7 +395,8 @@ function parseFormula(formula) {
 // Calculate the total price for a quote item
 function calcItemTotal(item) {
   if (item.customPrice !== null) return item.customPrice * item.qty;
-  return item.basePrice * item.qty;
+  var d = PRICING_DATA.difficultyMultipliers[item.difficulty] || 2;
+  return item.basePrice * item.qty * d;
 }
 
 function renderQuote() {
@@ -448,9 +449,9 @@ function renderQuote() {
     // Difficulty
     html += '<div style="font-size:12px;font-weight:600;color:var(--color-text-muted);margin-bottom:4px">DIFFICULTY</div>';
     html += '<div class="difficulty-picker">';
-    ['Easy', 'Medium', 'Hard'].forEach(function(d) {
-      var active = item.difficulty === d ? ' active' : '';
-      html += '<button class="diff-btn' + active + '" onclick="changeDifficulty(' + idx + ',\'' + d + '\')">' + d + '</button>';
+    [{ d: 'Easy', m: '1.8x' }, { d: 'Medium', m: '2x' }, { d: 'Hard', m: '2.5x' }].forEach(function(dm) {
+      var active = item.difficulty === dm.d ? ' active' : '';
+      html += '<button class="diff-btn' + active + '" onclick="changeDifficulty(' + idx + ',\'' + dm.d + '\')">' + dm.d + ' <small>(' + dm.m + ')</small></button>';
     });
     html += '</div>';
 

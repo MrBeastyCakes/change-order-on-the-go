@@ -3,6 +3,7 @@ const PRICING_DATA = {
   laborRate: 50,
   multiplier: 2.0,
   adjustRate: 25,
+  difficultyMultipliers: { Easy: 1.8, Medium: 2, Hard: 2.5 },
 
   // Material catalog — canonical entries only
   materials: {
