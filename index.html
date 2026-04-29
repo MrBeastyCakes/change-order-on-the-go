@@ -134,6 +134,9 @@ body {
 .mat-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; background: var(--color-surface-2); border: 1px solid var(--color-border); cursor: pointer; font-size: 12px; font-weight: 600; transition: all var(--transition-fast); margin: 2px; }
 .mat-chip:active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 .mat-chip.selected { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+/* Tab buttons */
+.tab-btn { flex: 1; padding: 10px 0; border: none; border-radius: calc(var(--radius-sm) - 2px); font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: var(--color-text-muted); transition: all var(--transition-fast); }
+.tab-btn.active { background: var(--color-primary); color: white; }
 </style>
 </head>
 <body>
@@ -181,6 +184,49 @@ body {
       <button class="btn btn-secondary btn-icon btn-small" onclick="closeCustomJob()">X</button>
     </div>
     <div class="modal-body">
+      <!-- Tab buttons -->
+      <div style="display:flex;gap:4px;margin-bottom:var(--space-md);background:var(--color-surface-2);border-radius:var(--radius-sm);padding:4px">
+        <button class="tab-btn active" id="tabQuick" onclick="switchTab('quick')">Quick Entry</button>
+        <button class="tab-btn" id="tabMaterial" onclick="switchTab('materials')">By Materials</button>
+      </div>
+
+      <!-- Quick Entry Tab -->
+      <div id="tabQuickContent">
+        <div style="margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--color-text-muted);margin-bottom:4px">JOB NAME</div>
+          <input type="text" id="quickJobName" placeholder="e.g. Patch hole in soffit" style="width:100%;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:14px;background:var(--color-surface-1);color:var(--color-text)">
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px">
+            <div style="font-size:13px;font-weight:600;color:var(--color-text-muted);margin-bottom:4px">LABOR HOURS</div>
+            <input type="number" id="quickLabor" value="0" min="0" step="0.5" style="width:100%;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:14px;background:var(--color-surface-1);color:var(--color-text)">
+          </div>
+          <div style="flex:1;min-width:120px">
+            <div style="font-size:13px;font-weight:600;color:var(--color-text-muted);margin-bottom:4px">LABOR RATE</div>
+            <input type="number" id="quickLaborRate" value="50" min="0" style="width:100%;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:14px;background:var(--color-surface-1);color:var(--color-text)">
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px">
+            <div style="font-size:13px;font-weight:600;color:var(--color-text-muted);margin-bottom:4px">MATERIALS COST</div>
+            <input type="number" id="quickMaterials" value="0" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:14px;background:var(--color-surface-1);color:var(--color-text)">
+          </div>
+          <div style="flex:1;min-width:120px">
+            <div style="font-size:13px;font-weight:600;color:var(--color-text-muted);margin-bottom:4px">TOTAL PRICE</div>
+            <input type="number" id="quickTotal" value="0" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;background:var(--color-surface-1);color:var(--color-primary)">
+          </div>
+        </div>
+        <div style="padding:8px 12px;background:var(--color-surface-2);border-radius:var(--radius-sm);font-size:13px;color:var(--color-text-muted);margin-bottom:8px">
+          Calculated: <span id="quickCalc" style="font-weight:700;color:var(--color-text)">$0.00</span> (materials + labor)
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="closeCustomJob()">Cancel</button>
+          <button class="btn btn-success" onclick="addQuickJobToQuote()">Add to Quote</button>
+        </div>
+      </div>
+
+      <!-- Materials Tab -->
+      <div id="tabMaterialContent" style="display:none">
       <div class="search-wrap">
         <span class="search-icon">&#128269;</span>
         <input type="text" placeholder="Filter materials..." oninput="filterMaterials()" id="matSearch">
@@ -202,6 +248,7 @@ body {
         <button class="btn btn-secondary" onclick="closeCustomJob()">Cancel</button>
         <button class="btn btn-success" onclick="addCustomJobToQuote()">Add to Quote</button>
       </div>
+    </div>
     </div>
   </div>
 </div>
@@ -537,6 +584,73 @@ function showToast(msg) {
 }
 
 // ===== Custom Job Builder =====
+// Tab switching
+function switchTab(tab) {
+  state.customTab = tab;
+  document.getElementById('tabQuick').className = tab === 'quick' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabMaterial').className = tab === 'materials' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabQuickContent').style.display = tab === 'quick' ? 'block' : 'none';
+  document.getElementById('tabMaterialContent').style.display = tab === 'materials' ? 'block' : 'none';
+}
+
+function openCustomJob() {
+  state.customLines = [];
+  state.customTab = 'quick';
+  document.getElementById('customModal').style.display = 'flex';
+  document.getElementById('matSearch').value = '';
+  document.getElementById('customJobName').value = '';
+  document.getElementById('quickJobName').value = '';
+  document.getElementById('quickLabor').value = '0';
+  document.getElementById('quickMaterials').value = '0';
+  document.getElementById('quickTotal').value = '0';
+  document.getElementById('quickCalc').textContent = '$0.00';
+  switchTab('quick');
+  renderMaterialPicker('');
+}
+
+// Live update for Quick Entry calculated field
+(function() {
+  document.addEventListener('input', function(e) {
+    if (e.target.id === 'quickLabor' || e.target.id === 'quickLaborRate' || e.target.id === 'quickMaterials') {
+      var h = parseFloat(document.getElementById('quickLabor').value) || 0;
+      var r = parseFloat(document.getElementById('quickLaborRate').value) || 0;
+      var m = parseFloat(document.getElementById('quickMaterials').value) || 0;
+      var calc = h * r + m;
+      document.getElementById('quickCalc').textContent = '$' + fmt(calc);
+    }
+  });
+})();
+
+function addQuickJobToQuote() {
+  var name = document.getElementById('quickJobName').value.trim() || 'Custom Job';
+  var labor = parseFloat(document.getElementById('quickLabor').value) || 0;
+  var laborRate = parseFloat(document.getElementById('quickLaborRate').value) || 50;
+  var materials = parseFloat(document.getElementById('quickMaterials').value) || 0;
+  var total = parseFloat(document.getElementById('quickTotal').value);
+  if (isNaN(total) || total <= 0) total = labor * laborRate + materials;
+  if (total <= 0) { showToast('Enter a price first'); return; }
+
+  // Build formula for breakdown display
+  var parts = [];
+  if (materials > 0) parts.push('Adjust-' + (materials / PRICING_DATA.adjustRate).toFixed(2));
+  if (labor > 0) parts.push('labour_rf-' + labor);
+
+  state.quote.push({
+    name: name,
+    qty: 1,
+    difficulty: 'Medium',
+    notes: '',
+    customPrice: total,
+    formula: parts.join('/'),
+    basePrice: total
+  });
+
+  closeCustomJob();
+  renderServices(document.getElementById('searchInput').value);
+  renderQuote();
+  showToast('Job added!');
+}
+
 // Build list of unique materials (no duplicates, no labor/adjust)
 function getMaterialList() {
   var seen = {};
@@ -551,14 +665,6 @@ function getMaterialList() {
   });
   list.sort(function(a, b) { return a.name.localeCompare(b.name); });
   return list;
-}
-
-function openCustomJob() {
-  state.customLines = [];
-  document.getElementById('customModal').style.display = 'flex';
-  document.getElementById('matSearch').value = '';
-  document.getElementById('customJobName').value = '';
-  renderMaterialPicker('');
 }
 
 function closeCustomJob() {
